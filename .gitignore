@@ -1,0 +1,13 @@
+# Secrets and local env
+**/.env
+!**/.env.example
+**/*.key
+**/*.key.*
+**/*.pem
+
+# Backups and runtime data
+cloud-free/backups/
+data/
+**/*.sql
+**/*.sql.gz
+**/.DS_Store

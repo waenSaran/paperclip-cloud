@@ -1,0 +1,8 @@
+# Optional overlay: use a hosted Postgres (Neon / Supabase free tier) instead
+# of the embedded database inside the volume.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.external-db.yml up -d
+services:
+  paperclip:
+    environment:
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env}"

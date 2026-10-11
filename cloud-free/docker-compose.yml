@@ -1,0 +1,59 @@
+# Paperclip on a cloud VM (Oracle Cloud Always Free or any Linux VPS).
+# Official image, authenticated + public mode, HTTPS via Caddy (Let's Encrypt).
+#
+#   cp .env.example .env      # fill PAPERCLIP_DOMAIN and the two secrets
+#   docker compose up -d
+#   docker compose logs paperclip | grep -i board-claim   # first-admin URL
+#
+# Data lives in the named volume `paperclip-data` (embedded Postgres, secrets,
+# uploads, workspaces). Back it up with scripts/backup.sh.
+name: paperclip-cloud
+
+services:
+  paperclip:
+    image: ghcr.io/paperclipai/paperclip:${PAPERCLIP_IMAGE_TAG:-2026.1005.0}
+    restart: unless-stopped
+    pids_limit: 2048
+    expose:
+      - "3100"
+    environment:
+      HOST: "0.0.0.0"
+      PAPERCLIP_HOME: "/paperclip"
+      PAPERCLIP_INSTANCE_ID: default
+      PAPERCLIP_DEPLOYMENT_MODE: authenticated
+      PAPERCLIP_DEPLOYMENT_EXPOSURE: public
+      PAPERCLIP_PUBLIC_URL: "https://${PAPERCLIP_DOMAIN:?set PAPERCLIP_DOMAIN in .env}"
+      PAPERCLIP_AUTH_PUBLIC_BASE_URL: "https://${PAPERCLIP_DOMAIN}"
+      PAPERCLIP_ALLOWED_HOSTNAMES: "${PAPERCLIP_DOMAIN}"
+      BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:?run: openssl rand -hex 32}"
+      PAPERCLIP_AGENT_JWT_SECRET: "${PAPERCLIP_AGENT_JWT_SECRET:?run: openssl rand -hex 32}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+    volumes:
+      - paperclip-data:/paperclip
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3100/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - paperclip
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PAPERCLIP_DOMAIN: "${PAPERCLIP_DOMAIN}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  paperclip-data:
+  caddy-data:
+  caddy-config:

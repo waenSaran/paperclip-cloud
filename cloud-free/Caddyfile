@@ -1,0 +1,5 @@
+# Automatic HTTPS (Let's Encrypt). Ports 80 and 443 must be open on the VM.
+{$PAPERCLIP_DOMAIN} {
+	encode gzip
+	reverse_proxy paperclip:3100
+}
